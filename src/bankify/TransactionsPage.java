@@ -1,0 +1,368 @@
+package bankify;
+
+import javax.swing.*;
+import javax.swing.plaf.basic.BasicLabelUI;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.net.URL;
+import java.util.ArrayList;
+import java.awt.image.BufferedImage;
+import java.awt.AlphaComposite;
+
+public class TransactionsPage extends JPanel {
+
+    // Transaction Data Model
+    public static class Tx {
+        String type;
+        String agentId;
+        String transactionId;
+        String amount;
+        String date;
+        String status;
+        String userImage; 
+
+        public Tx(String type, String transactionId, String amount, String date, String status, String userImage) {
+            this.type = type;
+            this.transactionId = transactionId;
+            this.amount = amount;
+            this.date = date;
+            this.status = status;
+            this.userImage = userImage;
+        }
+    }
+
+    private ArrayList<Tx> transactions;
+    private CardLayout cardLayout;
+    private JPanel contentPanel;
+    private JPanel sidebarPanel;
+    private JFrame parentFrame;
+
+    public TransactionsPage(CardLayout cardLayout, JPanel contentPanel, JFrame parentFrame) {
+        this.cardLayout = cardLayout;
+        this.contentPanel = contentPanel;
+        this.parentFrame = parentFrame;
+
+        setLayout(new BorderLayout());
+        setBackground(new Color(30, 127, 179));
+
+        // ===== Create Sidebar =====
+        sidebarPanel = createSidebar();
+        add(sidebarPanel, BorderLayout.WEST);
+
+        // ===== Create Main Content =====
+        JPanel mainContent = createMainContent();
+        add(mainContent, BorderLayout.CENTER);
+    }
+
+    private ImageIcon loadIcon(String path, int width, int height) {
+        try {
+            URL imgURL = getClass().getResource(path);
+            if (imgURL != null) {
+                ImageIcon icon = new ImageIcon(imgURL);
+                Image img = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private JPanel createSidebar() {
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setPreferredSize(new Dimension(280, 0)); 
+        sidebar.setBackground(Color.WHITE);
+
+        JPanel header = new JPanel();
+        header.setBackground(Color.WHITE);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBorder(BorderFactory.createEmptyBorder(30, 10, 20, 10));
+
+        JLabel logoLabel = new JLabel();
+        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        ImageIcon logoIcon = loadIcon("/Resources/bank_logo.jpg", 220, 150);
+        if (logoIcon != null) {
+            logoLabel.setIcon(logoIcon);
+        } else {
+            logoLabel.setText("BANKIFY");
+            logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+            logoLabel.setForeground(new Color(30, 127, 179));
+        }
+        
+        header.add(logoLabel);
+        header.add(Box.createVerticalStrut(10));
+
+        JPanel menuPanel = new JPanel();
+        menuPanel.setBackground(Color.WHITE);
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+
+        // Sidebar Buttons
+        String[] menuNames = {"Home", "Deposit", "Withdraw", "Transfer", "Transactions", "Settings"};
+        String[] iconPaths = {"/Resources/home.png", "/Resources/deposit.png", "/Resources/withdraw.png", "/Resources/transfer.png", "/Resources/transactions.png", "/Resources/settings.png"};
+
+        for (int i = 0; i < menuNames.length; i++) {
+            RoundedButton btn = createMenuButton(menuNames[i], iconPaths[i]);
+            String name = menuNames[i];
+            
+            if (name.equals("Transactions")) {
+                btn.setBackground(new Color(0,191,255));
+                btn.setForeground(Color.WHITE);
+            } else {
+                btn.addActionListener(e -> navigateTo(name));
+            }
+            
+            menuPanel.add(btn);
+            menuPanel.add(Box.createVerticalStrut(15));
+        }
+        
+        menuPanel.add(Box.createVerticalGlue());
+        sidebar.add(header, BorderLayout.NORTH);
+        sidebar.add(menuPanel, BorderLayout.CENTER);
+        return sidebar;
+    }
+
+    private RoundedButton createMenuButton(String text, String iconPath) {
+        RoundedButton btn = new RoundedButton(text);
+        ImageIcon icon = loadIcon(iconPath, 35, 35);
+        if (icon != null) btn.setIcon(icon);
+
+        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.setMaximumSize(new Dimension(240, 60));
+        btn.setPreferredSize(new Dimension(240, 60));
+        btn.setBackground(new Color(30,127,179));
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        btn.setHorizontalTextPosition(SwingConstants.RIGHT);
+        btn.setIconTextGap(15);
+        btn.setFocusPainted(false);
+
+        btn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { 
+                if (!btn.getText().equals("Transactions")) btn.setBackground(new Color(20,100,150)); 
+            }
+            public void mouseExited(MouseEvent e) { 
+                if (!btn.getText().equals("Transactions")) btn.setBackground(new Color(30,127,179));
+                else btn.setBackground(new Color(0, 191, 255));
+            }
+        });
+        return btn;
+    }
+
+    private JPanel createMainContent() {
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(new Color(30, 127, 179));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 30, 40));
+
+        JLabel titleLabel = new JLabel("Transactions");
+        ImageIcon titleIcon = loadIcon("/Resources/transactions.png", 40, 40);
+        if (titleIcon != null) titleLabel.setIcon(titleIcon);
+        titleLabel.setFont(new Font("Tw Cen MT", Font.BOLD, 26));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setHorizontalTextPosition(SwingConstants.RIGHT);
+        titleLabel.setIconTextGap(20);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 40, 15, 40));
+        titleLabel.setUI(new PillLabelUI(new Color(0, 191, 255), 80));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        mainPanel.add(titleLabel);
+        mainPanel.add(Box.createVerticalStrut(35));
+
+        // Dummy data
+        transactions = new ArrayList<>();
+        transactions.add(new Tx("Deposit", "TX123456", "+5,000 MMK", "1 Jan 2026 2:30PM", "Successful", "/Resources/user.png"));
+        transactions.add(new Tx("Withdraw", "TX123457", "-2,000 MMK", "2 Jan 2026 10:00AM", "Failed", "/Resources/user.png"));
+        transactions.add(new Tx("Send", "TX123458", "-1,000 MMK", "3 Jan 2026 11:15AM", "Successful", "/Resources/user.png"));
+        transactions.add(new Tx("Receive", "TX123459", "+3,000 MMK", "4 Jan 2026 9:00AM", "Successful", "/Resources/user.png"));
+
+        JPanel transactionContainer = new JPanel();
+        transactionContainer.setLayout(new BoxLayout(transactionContainer, BoxLayout.Y_AXIS));
+        transactionContainer.setBackground(new Color(30, 127, 179));
+
+        for (Tx tx : transactions) {
+            transactionContainer.add(createTransactionItem(tx));
+            transactionContainer.add(Box.createVerticalStrut(15));
+        }
+
+        JScrollPane scrollPane = new JScrollPane(transactionContainer);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getViewport().setBackground(new Color(30, 127, 179));
+        
+        mainPanel.add(scrollPane);
+        return mainPanel;
+    }
+
+    private JPanel createTransactionItem(Tx tx) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(173, 216, 230));
+        panel.setMaximumSize(new Dimension(1000, 110));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(135, 206, 250), 2),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+        panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // User Image
+        JLabel userImageLabel = new JLabel();
+        userImageLabel.setPreferredSize(new Dimension(70, 70));
+        ImageIcon userIcon = loadIcon(tx.userImage, 60, 60);
+        if (userIcon != null) userImageLabel.setIcon(new ImageIcon(makeCircular(userIcon.getImage())));
+        else userImageLabel.setIcon(createColoredCircleIcon(tx.type));
+        panel.add(userImageLabel, BorderLayout.WEST);
+
+        // Info Panel
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        row1.setOpaque(false);
+
+        JLabel typeLabel = new JLabel(tx.type);
+        typeLabel.setForeground(Color.WHITE);
+        typeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        typeLabel.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        typeLabel.setUI(new PillLabelUI(tx.type.equals("Deposit") || tx.type.equals("Receive") ? 
+            new Color(60, 179, 113) : new Color(220, 20, 60), 30));
+        row1.add(typeLabel);
+
+        JLabel idLabel = new JLabel(tx.transactionId);
+        idLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        idLabel.setForeground(new Color(50, 50, 50));
+        row1.add(idLabel);
+
+        JLabel amountLabel = new JLabel(tx.amount);
+        amountLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        amountLabel.setForeground(tx.amount.startsWith("+") ? new Color(40, 140, 80) : new Color(190, 20, 50));
+        row1.add(amountLabel);
+
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        row2.setOpaque(false);
+        JLabel dateLabel = new JLabel(tx.date);
+        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        dateLabel.setForeground(new Color(80, 80, 80));
+        row2.add(dateLabel);
+
+        JLabel statusLabel = new JLabel(tx.status);
+        statusLabel.setForeground(Color.WHITE);
+        statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 15, 4, 15));
+        statusLabel.setUI(new PillLabelUI(tx.status.equals("Successful") ? new Color(60, 179, 113) : new Color(220, 20, 60), 25));
+        row2.add(statusLabel);
+
+        infoPanel.add(row1);
+        infoPanel.add(Box.createVerticalStrut(8));
+        infoPanel.add(row2);
+        panel.add(infoPanel, BorderLayout.CENTER);
+
+        // Click to Detail
+        panel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                try {
+                    // TransactionDetail class ထဲမှာ constructor အသစ်ဆောက်ထားဖို့လိုပါတယ်
+                    TransactionDetail detail = new TransactionDetail(tx, cardLayout, contentPanel);
+                    contentPanel.add(detail, "Detail");
+                    cardLayout.show(contentPanel, "Detail");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "TransactionDetail class missing or error!");
+                }
+            }
+            public void mouseEntered(MouseEvent e) { panel.setBackground(new Color(135, 206, 250)); }
+            public void mouseExited(MouseEvent e) { panel.setBackground(new Color(173, 216, 230)); }
+        });
+
+        return panel;
+    }
+
+    private Icon createColoredCircleIcon(String type) {
+        int size = 60;
+        BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(new Color(100, 149, 237));
+        g2.fillOval(0, 0, size, size);
+        g2.dispose();
+        return new ImageIcon(image);
+    }
+
+    private Image makeCircular(Image srcImg) {
+        int size = 60;
+        BufferedImage mask = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = mask.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.fillOval(0, 0, size, size);
+        g2.setComposite(AlphaComposite.SrcIn);
+        g2.drawImage(srcImg, 0, 0, size, size, null);
+        g2.dispose();
+        return mask;
+    }
+
+    private static class PillLabelUI extends BasicLabelUI {
+        private Color bg;
+        private int height;
+        public PillLabelUI(Color bg, int height) { this.bg = bg; this.height = height; }
+        @Override
+        public void paint(Graphics g, JComponent c) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), c.getHeight(), c.getHeight());
+            super.paint(g2, c);
+            g2.dispose();
+        }
+    }
+
+    private class RoundedButton extends JButton {
+        public RoundedButton(String text) {
+            super(text);
+            setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false); setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(getBackground());
+            g2.fillRoundRect(0,0,getWidth(),getHeight(),getHeight(),getHeight());
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private void navigateTo(String pageName) {
+        if (parentFrame != null) parentFrame.dispose();
+        SwingUtilities.invokeLater(() -> {
+            JFrame f = null;
+            switch (pageName) {
+                case "Home" -> f = new HomePage();
+                case "Deposit" -> f = new DepositPage();
+                case "Withdraw" -> f = new WithdrawPage();
+                case "Transfer" -> f = new TransferPage();
+                case "Settings" -> f = new MainSettings();
+            }
+            if (f != null) {
+                f.setSize(1200, 800);
+                f.setLocationRelativeTo(null);
+                f.setVisible(true);
+            }
+        });
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Bankify - Transactions");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(1200, 800);
+            CardLayout cl = new CardLayout();
+            JPanel cp = new JPanel(cl);
+            cp.add(new TransactionsPage(cl, cp, frame), "Transactions");
+            frame.add(cp);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
+    }
+}
